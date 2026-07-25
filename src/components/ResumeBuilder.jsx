@@ -332,7 +332,7 @@ function Resume({ data, templateId }) {
             </div>
           ))}
         </div>
-        <div style={{ flex: 1, padding: "36px 30px", boxSizing: "border-box" }}>
+        <div className="resume-sheet-main" style={{ flex: 1, padding: "36px 30px", boxSizing: "border-box" }}>
           {mainKeys.map(k => renderers[k] && renderers[k]())}
         </div>
       </div>
@@ -341,7 +341,7 @@ function Resume({ data, templateId }) {
 
   // layout "single" (com ou sem foto no cabeçalho)
   return (
-    <div style={{
+    <div className="resume-sheet-main" style={{
       fontFamily: baseFont, color: "#1A1A1A", lineHeight, fontSize,
       padding: "40px 44px", background: "#FFFFFF", width: "100%",
       minHeight: "1000px", boxSizing: "border-box",
@@ -372,37 +372,82 @@ function Resume({ data, templateId }) {
   );
 }
 
-// ---------- LISTA DE REORDENAÇÃO (arrastar e soltar) ----------
+// ---------- LISTA DE REORDENAÇÃO (arrastar e soltar via Pointer Events) ----------
+// Pointer Events funcionam igual pra mouse (notebook) e toque (celular/tablet) —
+// a API antiga de HTML5 Drag and Drop não é bem suportada em touch no Safari/iOS.
 function SectionOrderList({ order, onChange }) {
-  const dragIndex = useRef(null);
+  const [draggingKey, setDraggingKey] = useState(null);
+  const itemRefs = useRef(new Map());
+  const orderRef = useRef(order);
+  orderRef.current = order;
 
-  const handleDrop = (index) => {
-    const from = dragIndex.current;
-    if (from === null || from === index) return;
-    const next = [...order];
-    const [moved] = next.splice(from, 1);
-    next.splice(index, 0, moved);
-    onChange(next);
-    dragIndex.current = null;
+  const handlePointerDown = (e, key) => {
+    e.preventDefault();
+    setDraggingKey(key);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
   };
+
+  const handlePointerMove = (e) => {
+    if (!draggingKey) return;
+    const y = e.clientY;
+    const current = orderRef.current;
+    const draggedIndex = current.indexOf(draggingKey);
+
+    for (let i = 0; i < current.length; i++) {
+      const key = current[i];
+      if (key === draggingKey) continue;
+      const node = itemRefs.current.get(key);
+      if (!node) continue;
+      const rect = node.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+
+      if (draggedIndex < i && y > mid) {
+        const next = [...current];
+        next.splice(draggedIndex, 1);
+        next.splice(i, 0, draggingKey);
+        onChange(next);
+        break;
+      }
+      if (draggedIndex > i && y < mid) {
+        const next = [...current];
+        next.splice(draggedIndex, 1);
+        next.splice(i, 0, draggingKey);
+        onChange(next);
+        break;
+      }
+    }
+  };
+
+  const endDrag = () => setDraggingKey(null);
 
   return (
     <div className="space-y-1.5">
-      {order.map((key, index) => (
+      {order.map((key) => (
         <div
           key={key}
-          draggable
-          onDragStart={() => { dragIndex.current = index; }}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={() => handleDrop(index)}
-          className="flex items-center gap-2 bg-[#FBFCFA] border border-[#E3E6E1] rounded-md px-3 py-2 text-sm text-[#12181F] cursor-grab active:cursor-grabbing"
+          ref={(el) => itemRefs.current.set(key, el)}
+          className={`flex items-center gap-2 bg-[#FBFCFA] border rounded-md px-3 py-2 text-sm text-[#12181F] transition-shadow ${
+            draggingKey === key ? "border-[#1F6F5C] shadow-md opacity-70" : "border-[#E3E6E1]"
+          }`}
         >
-          <GripVertical size={15} className="text-[#B4B9AE]" />
+          <button
+            type="button"
+            onPointerDown={(e) => handlePointerDown(e, key)}
+            onPointerMove={handlePointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            style={{ touchAction: "none" }}
+            className="cursor-grab active:cursor-grabbing p-1 -m-1 text-[#B4B9AE]"
+            aria-label="Arrastar para reordenar"
+          >
+            <GripVertical size={15} />
+          </button>
           {SECTION_LABELS[key]}
         </div>
       ))}
       <p className="text-xs text-[#8A9187] pt-1">
-        Arraste pra reordenar. Nos modelos com barra lateral (Executivo, Criativo), Habilidades e Idiomas ficam fixos na lateral.
+        Segure o ícone e arraste pra reordenar — funciona no notebook e no celular. Nos modelos com barra lateral
+        (Executivo, Criativo), Habilidades e Idiomas ficam fixos na lateral.
       </p>
     </div>
   );

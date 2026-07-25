@@ -8,6 +8,16 @@
   font-family: 'Inter', sans-serif;
 }
 
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+* {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
 @media print {
   body * {
     visibility: hidden;
@@ -32,5 +42,17 @@
      Isso força a coluna de visualização a aparecer sempre na impressão. */
   #preview-col {
     display: block !important;
+  }
+  /* O altura mínima e o espaçamento maior serviam só pra dar um "efeito de
+     página" na pré-visualização em tela. Na impressão eles somavam espaço
+     extra que, combinado com margens padrão diferentes entre navegadores
+     (ex: Safari no iPhone x Chrome no notebook), fazia o conteúdo estourar
+     pra uma segunda página só em alguns dispositivos. Removendo isso na
+     impressão, o resultado fica igual em qualquer aparelho. */
+  #print-area * {
+    min-height: 0 !important;
+  }
+  .resume-sheet-main {
+    padding: 24px 28px !important;
   }
 }
