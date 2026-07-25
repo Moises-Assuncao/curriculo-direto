@@ -3,7 +3,8 @@ import {
   Plus, Trash2, Download, CheckCircle2, User, FileText,
   Briefcase, GraduationCap, Award, Languages as LanguagesIcon,
   ChevronDown, ChevronUp, Sparkles, FolderKanban, HeartHandshake,
-  Cloud, CloudOff, Loader2, RotateCcw, LogOut
+  Cloud, CloudOff, Loader2, RotateCcw, LogOut, GripVertical,
+  ImagePlus, X, AlertTriangle, Palette
 } from "lucide-react";
 import { loadResume, saveResume, signOutUser } from "../firebase";
 
@@ -21,8 +22,23 @@ const emptyLanguage = () => ({ id: uid(), idioma: "", nivel: "Intermediário" })
 const emptyProject = () => ({ id: uid(), nome: "", descricao: "", link: "" });
 const emptyVolunteer = () => ({ id: uid(), cargo: "", organizacao: "", inicio: "", fim: "", descricao: "" });
 
+const DEFAULT_SECTION_ORDER = [
+  "resumo", "experiencia", "formacao", "projetos", "cursos", "voluntariado", "habilidades", "idiomas",
+];
+
+const SECTION_LABELS = {
+  resumo: "Resumo Profissional",
+  experiencia: "Experiência Profissional",
+  formacao: "Formação Acadêmica",
+  projetos: "Projetos",
+  cursos: "Cursos e Certificações",
+  voluntariado: "Experiência Voluntária",
+  habilidades: "Habilidades",
+  idiomas: "Idiomas",
+};
+
 const initialData = {
-  contato: { nome: "", cargo: "", email: "", telefone: "", cidade: "", linkedin: "", portfolio: "" },
+  contato: { nome: "", cargo: "", email: "", telefone: "", cidade: "", linkedin: "", portfolio: "", foto: "" },
   resumo: "",
   experiencias: [emptyExperience()],
   formacoes: [emptyEducation()],
@@ -31,12 +47,28 @@ const initialData = {
   voluntariado: [],
   habilidades: "",
   idiomas: [],
+  sectionOrder: DEFAULT_SECTION_ORDER,
+  accentColor: "",
 };
 
+const ACCENT_PRESETS = [
+  { nome: "Verde", cor: "#1F6F5C" },
+  { nome: "Azul", cor: "#1D4ED8" },
+  { nome: "Grafite", cor: "#12181F" },
+  { nome: "Vinho", cor: "#8E2C42" },
+  { nome: "Roxo", cor: "#5B3A9E" },
+  { nome: "Laranja", cor: "#C2540A" },
+];
+
+// layout: "single" (uma coluna, mais seguro pra ATS) | "sidebar" (duas colunas)
+// photo: "none" | "header" (ao lado do nome) | "sidebar" (centralizada na barra lateral)
 const TEMPLATES = [
-  { id: "classico", nome: "Clássico", desc: "Serifada, formal, ideal para vagas tradicionais" },
-  { id: "moderno", nome: "Moderno", desc: "Sans-serif, um leve toque de cor, direto ao ponto" },
-  { id: "compacto", nome: "Compacto", desc: "Espaçamento reduzido, cabe mais em uma página" },
+  { id: "classico", nome: "Clássico", desc: "Serifada, formal, tradicional", layout: "single", photo: "none", defaultAccent: "#12181F", atsWarning: false },
+  { id: "moderno", nome: "Moderno", desc: "Sans-serif, direto ao ponto", layout: "single", photo: "none", defaultAccent: "#1F6F5C", atsWarning: false },
+  { id: "compacto", nome: "Compacto", desc: "Espaçamento reduzido, cabe mais", layout: "single", photo: "none", defaultAccent: "#1F6F5C", atsWarning: false },
+  { id: "perfil", nome: "Perfil", desc: "Foto ao lado do nome", layout: "single", photo: "header", defaultAccent: "#1F6F5C", atsWarning: true },
+  { id: "executivo", nome: "Executivo", desc: "Barra lateral escura, foto centralizada", layout: "sidebar", photo: "sidebar", defaultAccent: "#12181F", atsWarning: true },
+  { id: "criativo", nome: "Criativo", desc: "Barra lateral colorida, visual moderno", layout: "sidebar", photo: "sidebar", defaultAccent: "#1F6F5C", atsWarning: true },
 ];
 
 function Section({ icon: Icon, title, children, open, onToggle }) {
@@ -101,150 +133,277 @@ function fmtRange(inicio, fim, atual) {
   return `${i} – ${f}`;
 }
 
-// ---------- RESUME RENDER (ATS-safe: coluna única, sem tabelas/imagens) ----------
-function Resume({ data, template }) {
-  const { contato, resumo, experiencias, formacoes, cursos, projetos, voluntariado, habilidades, idiomas } = data;
+function resizeImageToBase64(file, maxSize = 320, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- SEÇÕES DO CURRÍCULO (renderizadas na ordem escolhida) ----------
+function buildSectionRenderers(data, H) {
+  const { experiencias, formacoes, cursos, projetos, voluntariado, habilidades, idiomas, resumo } = data;
   const skillsList = habilidades.split(",").map(s => s.trim()).filter(Boolean);
 
-  const styles = {
-    classico: {
-      font: "Georgia, 'Times New Roman', serif", accent: "#12181F",
-      headingCase: "uppercase", headingSize: "12.5px", nameSize: "26px",
-      lineHeight: "1.5", align: "center", rule: "1px solid #12181F",
-    },
-    moderno: {
-      font: "Arial, Helvetica, sans-serif", accent: "#1F6F5C",
-      headingCase: "uppercase", headingSize: "12px", nameSize: "25px",
-      lineHeight: "1.45", align: "left", rule: "2px solid #1F6F5C",
-    },
-    compacto: {
-      font: "Arial, Helvetica, sans-serif", accent: "#1F6F5C",
-      headingCase: "uppercase", headingSize: "11px", nameSize: "22px",
-      lineHeight: "1.3", align: "left", rule: "1px solid #C7CCC3",
-    },
-  }[template];
+  return {
+    resumo: () => resumo && (
+      <div key="resumo">
+        <H>Resumo Profissional</H>
+        <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{resumo}</p>
+      </div>
+    ),
+    experiencia: () => experiencias.some(e => e.cargo || e.empresa) && (
+      <div key="experiencia">
+        <H>Experiência Profissional</H>
+        {experiencias.filter(e => e.cargo || e.empresa).map(e => (
+          <div key={e.id} style={{ marginBottom: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+              <span>{e.cargo}{e.empresa ? ` — ${e.empresa}` : ""}</span>
+              <span style={{ fontWeight: 400, fontSize: "11.5px", color: "#4A4F49", whiteSpace: "nowrap", marginLeft: "8px" }}>
+                {fmtRange(e.inicio, e.fim, e.atual)}
+              </span>
+            </div>
+            {e.local && <div style={{ fontSize: "11.5px", color: "#6B7268" }}>{e.local}</div>}
+            {e.descricao && (
+              <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
+                {e.descricao.split("\n").filter(Boolean).map((line, i) => (
+                  <li key={i} style={{ marginBottom: "2px" }}>{line.replace(/^[-•]\s*/, "")}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+    ),
+    formacao: () => formacoes.some(f => f.curso || f.instituicao) && (
+      <div key="formacao">
+        <H>Formação Acadêmica</H>
+        {formacoes.filter(f => f.curso || f.instituicao).map(f => (
+          <div key={f.id} style={{ marginBottom: "8px", display: "flex", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontWeight: 700 }}>{f.curso}</div>
+              <div style={{ fontSize: "11.5px", color: "#6B7268" }}>{f.instituicao}{f.local ? ` — ${f.local}` : ""}</div>
+            </div>
+            <div style={{ fontSize: "11.5px", color: "#4A4F49", whiteSpace: "nowrap", marginLeft: "8px" }}>
+              {fmtRange(f.inicio, f.fim, false)}
+            </div>
+          </div>
+        ))}
+      </div>
+    ),
+    projetos: () => projetos.some(p => p.nome) && (
+      <div key="projetos">
+        <H>Projetos</H>
+        {projetos.filter(p => p.nome).map(p => (
+          <div key={p.id} style={{ marginBottom: "8px" }}>
+            <div style={{ fontWeight: 700 }}>{p.nome}{p.link ? `  —  ${p.link}` : ""}</div>
+            {p.descricao && <div style={{ fontSize: "12.5px" }}>{p.descricao}</div>}
+          </div>
+        ))}
+      </div>
+    ),
+    cursos: () => cursos.some(c => c.nome) && (
+      <div key="cursos">
+        <H>Cursos e Certificações</H>
+        {cursos.filter(c => c.nome).map(c => (
+          <div key={c.id} style={{ marginBottom: "4px", display: "flex", justifyContent: "space-between" }}>
+            <span>{c.nome}{c.instituicao ? ` — ${c.instituicao}` : ""}</span>
+            {c.ano && <span style={{ fontSize: "11.5px", color: "#4A4F49" }}>{c.ano}</span>}
+          </div>
+        ))}
+      </div>
+    ),
+    voluntariado: () => voluntariado.some(v => v.cargo || v.organizacao) && (
+      <div key="voluntariado">
+        <H>Experiência Voluntária</H>
+        {voluntariado.filter(v => v.cargo || v.organizacao).map(v => (
+          <div key={v.id} style={{ marginBottom: "8px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+              <span>{v.cargo}{v.organizacao ? ` — ${v.organizacao}` : ""}</span>
+              <span style={{ fontWeight: 400, fontSize: "11.5px", color: "#4A4F49", whiteSpace: "nowrap", marginLeft: "8px" }}>
+                {fmtRange(v.inicio, v.fim, false)}
+              </span>
+            </div>
+            {v.descricao && <div style={{ fontSize: "12.5px" }}>{v.descricao}</div>}
+          </div>
+        ))}
+      </div>
+    ),
+    habilidades: () => skillsList.length > 0 && (
+      <div key="habilidades">
+        <H>Habilidades</H>
+        <p style={{ margin: 0 }}>{skillsList.join("  •  ")}</p>
+      </div>
+    ),
+    idiomas: () => idiomas.some(l => l.idioma) && (
+      <div key="idiomas">
+        <H>Idiomas</H>
+        <p style={{ margin: 0 }}>{idiomas.filter(l => l.idioma).map(l => `${l.idioma} (${l.nivel})`).join("  •  ")}</p>
+      </div>
+    ),
+  };
+}
 
-  const gap = template === "compacto" ? "10px" : "16px";
+// ---------- RENDER DO CURRÍCULO ----------
+function Resume({ data, templateId }) {
+  const template = TEMPLATES.find(t => t.id === templateId) || TEMPLATES[1];
+  const accent = data.accentColor || template.defaultAccent;
+  const { contato } = data;
+  const order = (data.sectionOrder && data.sectionOrder.length ? data.sectionOrder : DEFAULT_SECTION_ORDER)
+    .filter(k => DEFAULT_SECTION_ORDER.includes(k));
+
+  const baseFont = templateId === "classico" ? "Georgia, 'Times New Roman', serif" : "Arial, Helvetica, sans-serif";
+  const headingSize = templateId === "compacto" ? "11px" : "12px";
+  const nameSize = templateId === "classico" ? "26px" : "24px";
+  const lineHeight = templateId === "compacto" ? "1.3" : "1.45";
+  const fontSize = templateId === "compacto" ? "12.5px" : "13.5px";
 
   const H = ({ children }) => (
     <div style={{
-      fontSize: styles.headingSize, letterSpacing: "0.08em", textTransform: styles.headingCase,
-      fontWeight: 700, color: styles.accent, borderBottom: styles.rule,
-      paddingBottom: "3px", marginBottom: "8px", marginTop: gap,
+      fontSize: headingSize, letterSpacing: "0.08em", textTransform: "uppercase",
+      fontWeight: 700, color: accent, borderBottom: `2px solid ${accent}`,
+      paddingBottom: "3px", marginBottom: "8px", marginTop: "16px",
     }}>
       {children}
     </div>
   );
 
+  const renderers = buildSectionRenderers(data, H);
+  const sidebarKeys = ["habilidades", "idiomas"];
+  const mainKeys = order.filter(k => !sidebarKeys.includes(k));
+
+  const Photo = ({ size }) => contato.foto ? (
+    <img src={contato.foto} alt="Foto" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+  ) : null;
+
+  const ContactLine = ({ color }) => (
+    <div style={{ fontSize: "11.5px", color: color || "#4A4F49" }}>
+      {[contato.cidade, contato.telefone, contato.email, contato.linkedin, contato.portfolio].filter(Boolean).map((item, i, arr) => (
+        <div key={i} style={{ marginBottom: i < arr.length - 1 ? "2px" : 0 }}>{item}</div>
+      ))}
+    </div>
+  );
+
+  if (template.layout === "sidebar") {
+    const isDark = templateId === "executivo";
+    const sidebarBg = isDark ? "#12181F" : accent;
+    const sidebarText = "#FFFFFF";
+    return (
+      <div style={{ fontFamily: baseFont, display: "flex", minHeight: "1000px", fontSize, lineHeight, color: "#1A1A1A" }}>
+        <div style={{ width: "34%", background: sidebarBg, color: sidebarText, padding: "36px 22px", boxSizing: "border-box" }}>
+          {contato.foto && (
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+              <Photo size={92} />
+            </div>
+          )}
+          <div style={{ fontSize: "19px", fontWeight: 700, textAlign: "center", marginBottom: "2px" }}>{contato.nome || "Seu Nome"}</div>
+          {contato.cargo && <div style={{ fontSize: "12px", textAlign: "center", opacity: 0.85, marginBottom: "14px" }}>{contato.cargo}</div>}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.25)", paddingTop: "12px" }}>
+            <ContactLine color="rgba(255,255,255,0.9)" />
+          </div>
+          {["habilidades", "idiomas"].map(k => order.includes(k) && (
+            <div key={k} style={{ marginTop: "18px" }}>
+              <div style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 700, borderBottom: "1px solid rgba(255,255,255,0.35)", paddingBottom: "3px", marginBottom: "6px" }}>
+                {SECTION_LABELS[k]}
+              </div>
+              <div style={{ fontSize: "12px", opacity: 0.95 }}>
+                {k === "habilidades"
+                  ? data.habilidades.split(",").map(s => s.trim()).filter(Boolean).map((s, i) => <div key={i} style={{ marginBottom: "3px" }}>{s}</div>)
+                  : data.idiomas.filter(l => l.idioma).map((l, i) => <div key={i} style={{ marginBottom: "3px" }}>{l.idioma} — {l.nivel}</div>)
+                }
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ flex: 1, padding: "36px 30px", boxSizing: "border-box" }}>
+          {mainKeys.map(k => renderers[k] && renderers[k]())}
+        </div>
+      </div>
+    );
+  }
+
+  // layout "single" (com ou sem foto no cabeçalho)
   return (
     <div style={{
-      fontFamily: styles.font, color: "#1A1A1A", lineHeight: styles.lineHeight,
-      fontSize: template === "compacto" ? "12.5px" : "13.5px",
+      fontFamily: baseFont, color: "#1A1A1A", lineHeight, fontSize,
       padding: "40px 44px", background: "#FFFFFF", width: "100%",
       minHeight: "1000px", boxSizing: "border-box",
     }}>
-      <div style={{ textAlign: styles.align, marginBottom: "6px" }}>
-        <div style={{ fontSize: styles.nameSize, fontWeight: 700, color: styles.accent }}>
-          {contato.nome || "Seu Nome"}
+      {template.photo === "header" ? (
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
+          <Photo size={72} />
+          <div>
+            <div style={{ fontSize: nameSize, fontWeight: 700, color: accent }}>{contato.nome || "Seu Nome"}</div>
+            {contato.cargo && <div style={{ fontSize: "14px", color: "#4A4F49", marginTop: "2px" }}>{contato.cargo}</div>}
+            <div style={{ fontSize: "11.5px", color: "#4A4F49", marginTop: "4px" }}>
+              {[contato.cidade, contato.telefone, contato.email, contato.linkedin, contato.portfolio].filter(Boolean).join("  |  ")}
+            </div>
+          </div>
         </div>
-        {contato.cargo && <div style={{ fontSize: "14px", color: "#4A4F49", marginTop: "2px" }}>{contato.cargo}</div>}
-        <div style={{ fontSize: "11.5px", color: "#4A4F49", marginTop: "6px" }}>
-          {[contato.cidade, contato.telefone, contato.email, contato.linkedin, contato.portfolio].filter(Boolean).join("  |  ")}
+      ) : (
+        <div style={{ textAlign: templateId === "classico" ? "center" : "left", marginBottom: "6px" }}>
+          <div style={{ fontSize: nameSize, fontWeight: 700, color: accent }}>{contato.nome || "Seu Nome"}</div>
+          {contato.cargo && <div style={{ fontSize: "14px", color: "#4A4F49", marginTop: "2px" }}>{contato.cargo}</div>}
+          <div style={{ fontSize: "11.5px", color: "#4A4F49", marginTop: "6px" }}>
+            {[contato.cidade, contato.telefone, contato.email, contato.linkedin, contato.portfolio].filter(Boolean).join("  |  ")}
+          </div>
         </div>
-      </div>
-
-      {resumo && (<><H>Resumo Profissional</H><p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{resumo}</p></>)}
-
-      {experiencias.some(e => e.cargo || e.empresa) && (
-        <>
-          <H>Experiência Profissional</H>
-          {experiencias.filter(e => e.cargo || e.empresa).map(e => (
-            <div key={e.id} style={{ marginBottom: gap }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
-                <span>{e.cargo}{e.empresa ? ` — ${e.empresa}` : ""}</span>
-                <span style={{ fontWeight: 400, fontSize: "11.5px", color: "#4A4F49", whiteSpace: "nowrap", marginLeft: "8px" }}>
-                  {fmtRange(e.inicio, e.fim, e.atual)}
-                </span>
-              </div>
-              {e.local && <div style={{ fontSize: "11.5px", color: "#6B7268" }}>{e.local}</div>}
-              {e.descricao && (
-                <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
-                  {e.descricao.split("\n").filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ marginBottom: "2px" }}>{line.replace(/^[-•]\s*/, "")}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </>
       )}
 
-      {formacoes.some(f => f.curso || f.instituicao) && (
-        <>
-          <H>Formação Acadêmica</H>
-          {formacoes.filter(f => f.curso || f.instituicao).map(f => (
-            <div key={f.id} style={{ marginBottom: "8px", display: "flex", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontWeight: 700 }}>{f.curso}</div>
-                <div style={{ fontSize: "11.5px", color: "#6B7268" }}>{f.instituicao}{f.local ? ` — ${f.local}` : ""}</div>
-              </div>
-              <div style={{ fontSize: "11.5px", color: "#4A4F49", whiteSpace: "nowrap", marginLeft: "8px" }}>
-                {fmtRange(f.inicio, f.fim, false)}
-              </div>
-            </div>
-          ))}
-        </>
-      )}
+      {order.map(k => renderers[k] && renderers[k]())}
+    </div>
+  );
+}
 
-      {projetos.some(p => p.nome) && (
-        <>
-          <H>Projetos</H>
-          {projetos.filter(p => p.nome).map(p => (
-            <div key={p.id} style={{ marginBottom: "8px" }}>
-              <div style={{ fontWeight: 700 }}>{p.nome}{p.link ? `  —  ${p.link}` : ""}</div>
-              {p.descricao && <div style={{ fontSize: "12.5px" }}>{p.descricao}</div>}
-            </div>
-          ))}
-        </>
-      )}
+// ---------- LISTA DE REORDENAÇÃO (arrastar e soltar) ----------
+function SectionOrderList({ order, onChange }) {
+  const dragIndex = useRef(null);
 
-      {cursos.some(c => c.nome) && (
-        <>
-          <H>Cursos e Certificações</H>
-          {cursos.filter(c => c.nome).map(c => (
-            <div key={c.id} style={{ marginBottom: "4px", display: "flex", justifyContent: "space-between" }}>
-              <span>{c.nome}{c.instituicao ? ` — ${c.instituicao}` : ""}</span>
-              {c.ano && <span style={{ fontSize: "11.5px", color: "#4A4F49" }}>{c.ano}</span>}
-            </div>
-          ))}
-        </>
-      )}
+  const handleDrop = (index) => {
+    const from = dragIndex.current;
+    if (from === null || from === index) return;
+    const next = [...order];
+    const [moved] = next.splice(from, 1);
+    next.splice(index, 0, moved);
+    onChange(next);
+    dragIndex.current = null;
+  };
 
-      {voluntariado.some(v => v.cargo || v.organizacao) && (
-        <>
-          <H>Experiência Voluntária</H>
-          {voluntariado.filter(v => v.cargo || v.organizacao).map(v => (
-            <div key={v.id} style={{ marginBottom: "8px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
-                <span>{v.cargo}{v.organizacao ? ` — ${v.organizacao}` : ""}</span>
-                <span style={{ fontWeight: 400, fontSize: "11.5px", color: "#4A4F49", whiteSpace: "nowrap", marginLeft: "8px" }}>
-                  {fmtRange(v.inicio, v.fim, false)}
-                </span>
-              </div>
-              {v.descricao && <div style={{ fontSize: "12.5px" }}>{v.descricao}</div>}
-            </div>
-          ))}
-        </>
-      )}
-
-      {skillsList.length > 0 && (<><H>Habilidades</H><p style={{ margin: 0 }}>{skillsList.join("  •  ")}</p></>)}
-
-      {idiomas.some(l => l.idioma) && (
-        <>
-          <H>Idiomas</H>
-          <p style={{ margin: 0 }}>{idiomas.filter(l => l.idioma).map(l => `${l.idioma} (${l.nivel})`).join("  •  ")}</p>
-        </>
-      )}
+  return (
+    <div className="space-y-1.5">
+      {order.map((key, index) => (
+        <div
+          key={key}
+          draggable
+          onDragStart={() => { dragIndex.current = index; }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={() => handleDrop(index)}
+          className="flex items-center gap-2 bg-[#FBFCFA] border border-[#E3E6E1] rounded-md px-3 py-2 text-sm text-[#12181F] cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical size={15} className="text-[#B4B9AE]" />
+          {SECTION_LABELS[key]}
+        </div>
+      ))}
+      <p className="text-xs text-[#8A9187] pt-1">
+        Arraste pra reordenar. Nos modelos com barra lateral (Executivo, Criativo), Habilidades e Idiomas ficam fixos na lateral.
+      </p>
     </div>
   );
 }
@@ -254,17 +413,18 @@ export default function ResumeBuilder({ user }) {
   const [template, setTemplate] = useState("moderno");
   const [openSection, setOpenSection] = useState("contato");
   const [mobileView, setMobileView] = useState("form");
-  const [saveState, setSaveState] = useState("loading"); // loading | saved | saving | offline
+  const [saveState, setSaveState] = useState("loading");
+  const [fileName, setFileName] = useState("");
+  const [photoError, setPhotoError] = useState("");
   const skipNextSave = useRef(true);
   const saveTimer = useRef(null);
 
-  // Carrega o currículo salvo do usuário logado
   useEffect(() => {
     (async () => {
       try {
         const saved = await loadResume(user.uid);
         if (saved) {
-          if (saved.data) setData(saved.data);
+          if (saved.data) setData(d => ({ ...initialData, ...saved.data, sectionOrder: saved.data.sectionOrder?.length ? saved.data.sectionOrder : DEFAULT_SECTION_ORDER }));
           if (saved.template) setTemplate(saved.template);
         }
         setSaveState("saved");
@@ -277,7 +437,6 @@ export default function ResumeBuilder({ user }) {
     })();
   }, [user.uid]);
 
-  // Salva automaticamente (com debounce) no Firestore, vinculado ao uid
   useEffect(() => {
     if (skipNextSave.current) return;
     setSaveState("saving");
@@ -301,6 +460,22 @@ export default function ResumeBuilder({ user }) {
   const addItem = (key, factory) => setData(d => ({ ...d, [key]: [...d[key], factory()] }));
   const removeItem = (key, id) => setData(d => ({ ...d, [key]: d[key].filter(item => item.id !== id) }));
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoError("");
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Selecione um arquivo de imagem.");
+      return;
+    }
+    try {
+      const base64 = await resizeImageToBase64(file);
+      setContato("foto", base64);
+    } catch (err) {
+      setPhotoError("Não foi possível carregar essa imagem.");
+    }
+  };
+
   const resetAll = async () => {
     if (!window.confirm("Isso vai apagar todos os dados salvos deste currículo. Continuar?")) return;
     setData(initialData);
@@ -308,14 +483,33 @@ export default function ResumeBuilder({ user }) {
     try { await saveResume(user.uid, { data: initialData, template: "moderno" }); } catch (err) {}
   };
 
-  const atsChecks = useMemo(() => ([
-    "Layout de coluna única, sem tabelas ou caixas de texto",
-    "Fontes padrão (Arial/Georgia) legíveis por qualquer sistema",
-    "Sem ícones, imagens ou gráficos no conteúdo do texto",
-    "Títulos de seção em formato reconhecido pelos ATS",
-  ]), []);
+  const atsChecks = useMemo(() => {
+    const tpl = TEMPLATES.find(t => t.id === template);
+    if (!tpl || !tpl.atsWarning) {
+      return [
+        "Layout de coluna única, sem tabelas ou caixas de texto",
+        "Fontes padrão (Arial/Georgia) legíveis por qualquer sistema",
+        "Sem ícones, imagens ou gráficos no conteúdo do texto",
+        "Títulos de seção em formato reconhecido pelos ATS",
+      ];
+    }
+    return null;
+  }, [template]);
 
-  const handlePrint = () => window.print();
+  const currentTemplate = TEMPLATES.find(t => t.id === template);
+
+  const handlePrint = () => {
+    const previous = document.title;
+    const cleaned = fileName.trim().replace(/[\\/:*?"<>|]/g, "");
+    const finalName = cleaned || `curriculo-${Math.floor(1000 + Math.random() * 9000)}`;
+    document.title = finalName;
+    const restore = () => {
+      document.title = previous;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    window.print();
+  };
 
   const SaveIndicator = () => {
     const map = {
@@ -335,7 +529,7 @@ export default function ResumeBuilder({ user }) {
   return (
     <div className="min-h-screen bg-[#F6F7F5]">
       <header id="no-print" className="border-b border-[#E3E6E1] bg-white sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-5 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-md bg-[#1F6F5C] flex items-center justify-center">
               <FileText size={17} className="text-white" />
@@ -347,7 +541,7 @@ export default function ResumeBuilder({ user }) {
               <div className="text-[11px] text-[#8A9187] leading-tight">sem enrolação, passa no ATS</div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <SaveIndicator />
             {user.photoURL && (
               <img src={user.photoURL} alt={user.displayName || "Usuário"} className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />
@@ -358,6 +552,13 @@ export default function ResumeBuilder({ user }) {
             <button onClick={signOutUser} className="text-[#6B7268] hover:text-[#B4483B] p-2 rounded-md transition-colors" title="Sair">
               <LogOut size={15} />
             </button>
+            <input
+              type="text"
+              value={fileName}
+              onChange={(e) => setFileName(e.target.value)}
+              placeholder="Nome do arquivo (opcional)"
+              className="w-40 sm:w-52 rounded-md border border-[#D7DBD3] px-2.5 py-2 text-xs text-[#12181F] outline-none focus:border-[#1F6F5C]"
+            />
             <button
               onClick={handlePrint}
               className="flex items-center gap-2 bg-[#1F6F5C] hover:bg-[#195a4a] text-white text-sm font-semibold px-4 py-2 rounded-md transition-colors"
@@ -382,11 +583,12 @@ export default function ResumeBuilder({ user }) {
 
       <div className="max-w-7xl mx-auto px-5 py-6 grid lg:grid-cols-[1fr_1.1fr] gap-6">
         <div id="no-print" className={`space-y-4 ${mobileView === "preview" ? "hidden lg:block" : ""}`}>
+          {/* Template picker */}
           <div className="bg-white border border-[#E3E6E1] rounded-lg p-4">
             <div className="text-sm font-semibold text-[#12181F] mb-3 flex items-center gap-1.5">
               <Sparkles size={15} className="text-[#1F6F5C]" /> Escolha o layout
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {TEMPLATES.map(t => (
                 <button
                   key={t.id}
@@ -400,9 +602,66 @@ export default function ResumeBuilder({ user }) {
                 </button>
               ))}
             </div>
+            {currentTemplate?.atsWarning && (
+              <div className="flex items-start gap-2 mt-3 bg-[#FFF4E5] text-[#7A5A00] text-xs rounded-md p-2.5">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                Modelos com foto ou barra lateral são mais bonitos, mas alguns sistemas de ATS têm mais dificuldade
+                pra ler colunas e imagens. Pra vagas que usam ATS de forma rígida, prefira Clássico, Moderno ou Compacto.
+              </div>
+            )}
+          </div>
+
+          {/* Personalização: cor + ordem das seções */}
+          <div className="bg-white border border-[#E3E6E1] rounded-lg p-4 space-y-4">
+            <div>
+              <div className="text-sm font-semibold text-[#12181F] mb-2.5 flex items-center gap-1.5">
+                <Palette size={15} className="text-[#1F6F5C]" /> Cor de destaque
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {ACCENT_PRESETS.map(p => (
+                  <button
+                    key={p.cor}
+                    title={p.nome}
+                    onClick={() => setData(d => ({ ...d, accentColor: p.cor }))}
+                    style={{ background: p.cor }}
+                    className={`w-7 h-7 rounded-full border-2 ${data.accentColor === p.cor ? "border-[#12181F]" : "border-transparent"}`}
+                  />
+                ))}
+                <input
+                  type="color"
+                  value={data.accentColor || currentTemplate?.defaultAccent || "#1F6F5C"}
+                  onChange={(e) => setData(d => ({ ...d, accentColor: e.target.value }))}
+                  className="w-8 h-8 rounded-md border border-[#D7DBD3] cursor-pointer bg-transparent"
+                  title="Cor personalizada"
+                />
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-[#12181F] mb-2.5">Ordem das seções</div>
+              <SectionOrderList order={data.sectionOrder} onChange={(next) => setData(d => ({ ...d, sectionOrder: next }))} />
+            </div>
           </div>
 
           <Section icon={User} title="Dados pessoais" open={openSection === "contato"} onToggle={() => toggle("contato")}>
+            <div className="flex items-center gap-3">
+              {data.contato.foto ? (
+                <div className="relative">
+                  <img src={data.contato.foto} alt="Foto de perfil" className="w-16 h-16 rounded-full object-cover border border-[#E3E6E1]" />
+                  <button onClick={() => setContato("foto", "")} className="absolute -top-1 -right-1 bg-white border border-[#E3E6E1] rounded-full p-0.5 text-[#B4483B]">
+                    <X size={12} />
+                  </button>
+                </div>
+              ) : (
+                <label className="w-16 h-16 rounded-full border-2 border-dashed border-[#D7DBD3] flex items-center justify-center cursor-pointer text-[#8A9187] hover:border-[#1F6F5C] hover:text-[#1F6F5C] transition-colors">
+                  <ImagePlus size={20} />
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                </label>
+              )}
+              <div className="text-xs text-[#8A9187]">
+                Foto opcional — usada só nos modelos Perfil, Executivo e Criativo.
+                {photoError && <div className="text-[#B4483B] mt-1">{photoError}</div>}
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Nome completo" value={data.contato.nome} onChange={e => setContato("nome", e.target.value)} />
               <Field label="Cargo desejado" value={data.contato.cargo} onChange={e => setContato("cargo", e.target.value)} placeholder="Ex: Analista de Dados" />
@@ -541,21 +800,29 @@ export default function ResumeBuilder({ user }) {
           </Section>
         </div>
 
-        <div className={`${mobileView === "form" ? "hidden lg:block" : ""}`}>
+        {/* PREVIEW */}
+        <div id="preview-col" className={`${mobileView === "form" ? "hidden lg:block" : ""}`}>
           <div id="no-print" className="bg-white border border-[#E3E6E1] rounded-lg p-4 mb-4">
             <div className="text-sm font-semibold text-[#12181F] mb-2.5">Compatibilidade com ATS</div>
-            <div className="space-y-1.5">
-              {atsChecks.map((c, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs text-[#4A4F49]">
-                  <CheckCircle2 size={14} className="text-[#1F6F5C] shrink-0 mt-0.5" />
-                  {c}
-                </div>
-              ))}
-            </div>
+            {atsChecks ? (
+              <div className="space-y-1.5">
+                {atsChecks.map((c, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs text-[#4A4F49]">
+                    <CheckCircle2 size={14} className="text-[#1F6F5C] shrink-0 mt-0.5" />
+                    {c}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 text-xs text-[#7A5A00]">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                Este modelo usa foto e/ou colunas — visual mais rico, porém com compatibilidade reduzida em alguns ATS.
+              </div>
+            )}
           </div>
           <div className="lg:sticky lg:top-[90px]">
             <div id="print-area" className="bg-white border border-[#E3E6E1] rounded-lg shadow-sm overflow-hidden">
-              <Resume data={data} template={template} />
+              <Resume data={data} templateId={template} />
             </div>
           </div>
         </div>

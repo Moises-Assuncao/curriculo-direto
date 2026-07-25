@@ -26,4 +26,11 @@
   #no-print {
     display: none !important;
   }
+  /* O Chrome renderiza a impressão usando a largura da página (menor que
+     1024px), então a classe "hidden lg:block" (usada pra alternar entre
+     Editar/Visualizar no celular) escondia o currículo na hora de imprimir.
+     Isso força a coluna de visualização a aparecer sempre na impressão. */
+  #preview-col {
+    display: block !important;
+  }
 }
