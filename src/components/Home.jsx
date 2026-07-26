@@ -1,0 +1,213 @@
+import React from "react";
+import {
+  FileText, ArrowRight, UploadCloud, Target, CheckCircle2,
+  Palette, LayoutTemplate, Cloud, ShieldCheck, Sparkles,
+} from "lucide-react";
+
+const STEPS = [
+  {
+    n: "01",
+    icon: UploadCloud,
+    titulo: "Preencha suas informações",
+    desc: "Nome, experiências, formação, cursos e habilidades — direto no formulário, sem complicação.",
+  },
+  {
+    n: "02",
+    icon: Palette,
+    titulo: "Escolha o visual",
+    desc: "Vários modelos prontos, cor de destaque e ordem das seções do seu jeito.",
+  },
+  {
+    n: "03",
+    icon: CheckCircle2,
+    titulo: "Baixe em PDF",
+    desc: "Currículo pronto, com nome de arquivo à sua escolha, pronto pra enviar pras vagas.",
+  },
+];
+
+const FEATURES = [
+  { icon: ShieldCheck, titulo: "Pronto pro ATS", desc: "Modelos pensados pra passar pelos sistemas automáticos de triagem." },
+  { icon: LayoutTemplate, titulo: "Vários modelos", desc: "De clássico e discreto a moderno com foto e cor." },
+  { icon: Cloud, titulo: "Salvo na nuvem", desc: "Entre com sua conta Google e continue de onde parou, em qualquer aparelho." },
+  { icon: Sparkles, titulo: "100% seu", desc: "Personalize cores e a ordem das seções do jeito que fizer sentido pra sua vaga." },
+];
+
+function ScoreCard() {
+  return (
+    <div className="relative bg-white border border-[#E3E6E1] rounded-2xl shadow-[0_20px_50px_-20px_rgba(18,24,31,0.25)] p-6 w-full max-w-sm">
+      <div className="absolute -top-3 left-6 bg-[#1F6F5C] text-white text-[11px] font-semibold px-3 py-1 rounded-full tracking-wide">
+        PRÉ-VISUALIZAÇÃO
+      </div>
+      <div className="flex items-center justify-between mb-5 mt-1">
+        <div className="space-y-2 flex-1 mr-4">
+          <div className="h-2.5 bg-[#E3E6E1] rounded-full w-3/4" />
+          <div className="h-2 bg-[#EDEFEA] rounded-full w-1/2" />
+        </div>
+        <div className="relative w-16 h-16 shrink-0">
+          <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#EDEFEA" strokeWidth="3.5" />
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#1F6F5C" strokeWidth="3.5"
+              strokeDasharray="97.4" strokeDashoffset="9" strokeLinecap="round" />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-sm font-bold text-[#12181F]">92</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-[10px] font-semibold tracking-wide text-[#8A9187] mb-2">HABILIDADES DETECTADAS</div>
+      <div className="flex flex-wrap gap-1.5 mb-5">
+        {["React", "Excel", "Gestão", "SQL", "Comunicação"].map(s => (
+          <span key={s} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-[#EEF5F2] text-[#1F6F5C] border border-[#D7E7E1]">
+            {s}
+          </span>
+        ))}
+      </div>
+
+      <div className="space-y-1.5 mb-4">
+        <div className="h-2 bg-[#EDEFEA] rounded-full w-full" />
+        <div className="h-2 bg-[#EDEFEA] rounded-full w-[85%]" />
+        <div className="h-2 bg-[#EDEFEA] rounded-full w-[70%]" />
+      </div>
+
+      <div className="border-t border-[#E3E6E1] pt-3">
+        <div className="text-[10px] font-semibold tracking-wide text-[#8A9187] mb-1.5">COMPATIBILIDADE COM ATS</div>
+        <div className="h-2 rounded-full bg-[#EDEFEA] overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-[#1F6F5C] to-[#C9A227] rounded-full" style={{ width: "88%" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Home({ onStart }) {
+  return (
+    <div className="min-h-screen bg-[#F6F7F5]" style={{ fontFamily: "Inter, sans-serif" }}>
+      {/* Header */}
+      <header className="border-b border-[#E3E6E1] bg-white/80 backdrop-blur sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-md bg-[#1F6F5C] flex items-center justify-center">
+              <FileText size={17} className="text-white" />
+            </div>
+            <span style={{ fontFamily: "Fraunces, serif" }} className="text-lg font-bold text-[#12181F]">
+              Currículo Direto
+            </span>
+          </div>
+          <nav className="hidden md:flex items-center gap-7 text-sm text-[#4A4F49] font-medium">
+            <a href="#como-funciona" className="hover:text-[#1F6F5C] transition-colors">Como funciona</a>
+            <a href="#recursos" className="hover:text-[#1F6F5C] transition-colors">Recursos</a>
+          </nav>
+          <button
+            onClick={onStart}
+            className="bg-[#1F6F5C] hover:bg-[#195a4a] text-white text-sm font-semibold px-4 py-2 rounded-md transition-colors"
+          >
+            Entrar com Google
+          </button>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="max-w-6xl mx-auto px-5 pt-16 pb-20 grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <span className="inline-flex items-center gap-1.5 bg-[#EEF5F2] text-[#1F6F5C] text-xs font-semibold px-3 py-1.5 rounded-full border border-[#D7E7E1] mb-6">
+            <Sparkles size={12} /> Feito por você · pronto pro ATS
+          </span>
+          <h1 style={{ fontFamily: "Fraunces, serif" }} className="text-[2.75rem] leading-[1.08] sm:text-6xl sm:leading-[1.05] font-bold text-[#12181F] mb-6">
+            Seu currículo,<br />
+            <span className="text-[#1F6F5C]">sem enrolação.</span>
+          </h1>
+          <p className="text-base sm:text-lg text-[#4A4F49] mb-8 max-w-md leading-relaxed">
+            Preencha suas informações, escolha um modelo e baixe um currículo em PDF pensado
+            pra ser lido tanto por recrutadores quanto pelos sistemas de ATS.
+          </p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <button
+              onClick={onStart}
+              className="group flex items-center gap-2 bg-[#1F6F5C] hover:bg-[#195a4a] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors"
+            >
+              Criar meu currículo grátis
+              <ArrowRight size={17} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
+            <span className="text-xs text-[#8A9187]">Sem cartão de crédito. Só sua conta Google.</span>
+          </div>
+        </div>
+
+        <div className="flex justify-center lg:justify-end">
+          <ScoreCard />
+        </div>
+      </section>
+
+      {/* Como funciona */}
+      <section id="como-funciona" className="max-w-6xl mx-auto px-5 py-16 border-t border-[#E3E6E1]">
+        <span className="text-xs font-semibold tracking-wide text-[#1F6F5C] uppercase">Como funciona</span>
+        <h2 style={{ fontFamily: "Fraunces, serif" }} className="text-3xl sm:text-4xl font-bold text-[#12181F] mt-2 mb-12 max-w-xl">
+          Do zero ao PDF em três passos.
+        </h2>
+        <div className="grid sm:grid-cols-3 gap-5">
+          {STEPS.map(s => (
+            <div key={s.n} className="bg-white border border-[#E3E6E1] rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold text-[#B4B9AE] tracking-wide">{s.n}</span>
+                <div className="w-9 h-9 rounded-lg bg-[#EEF5F2] flex items-center justify-center">
+                  <s.icon size={17} className="text-[#1F6F5C]" />
+                </div>
+              </div>
+              <div className="font-semibold text-[#12181F] mb-1.5">{s.titulo}</div>
+              <p className="text-sm text-[#6B7268] leading-relaxed">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Recursos */}
+      <section id="recursos" className="max-w-6xl mx-auto px-5 py-16 border-t border-[#E3E6E1]">
+        <span className="text-xs font-semibold tracking-wide text-[#1F6F5C] uppercase">Recursos</span>
+        <h2 style={{ fontFamily: "Fraunces, serif" }} className="text-3xl sm:text-4xl font-bold text-[#12181F] mt-2 mb-12 max-w-xl">
+          Tudo que você precisa, sem enfeite demais.
+        </h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {FEATURES.map(f => (
+            <div key={f.titulo} className="p-5">
+              <div className="w-10 h-10 rounded-lg bg-[#12181F] flex items-center justify-center mb-4">
+                <f.icon size={18} className="text-white" />
+              </div>
+              <div className="font-semibold text-[#12181F] mb-1.5">{f.titulo}</div>
+              <p className="text-sm text-[#6B7268] leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA final */}
+      <section className="max-w-6xl mx-auto px-5 pb-20">
+        <div className="bg-[#12181F] rounded-2xl px-8 py-14 text-center relative overflow-hidden">
+          <div className="absolute inset-0 opacity-[0.07]" style={{
+            backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundSize: "22px 22px",
+          }} />
+          <div className="relative">
+            <h2 style={{ fontFamily: "Fraunces, serif" }} className="text-2xl sm:text-3xl font-bold text-white mb-3">
+              Bora colocar seu currículo no ar?
+            </h2>
+            <p className="text-[#B4B9AE] mb-7 text-sm sm:text-base">Leva menos de 10 minutos pra ter um currículo pronto.</p>
+            <button
+              onClick={onStart}
+              className="inline-flex items-center gap-2 bg-[#1F6F5C] hover:bg-[#25836e] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors"
+            >
+              Entrar com Google e começar
+              <ArrowRight size={17} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-[#E3E6E1] py-8">
+        <div className="max-w-6xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#8A9187]">
+          <span>© {new Date().getFullYear()} Currículo Direto</span>
+          <span>Feito pra passar pelo ATS e impressionar quem lê depois.</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
