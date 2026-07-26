@@ -2,6 +2,7 @@ import React from "react";
 import {
   FileText, ArrowRight, UploadCloud, Target, CheckCircle2,
   Palette, LayoutTemplate, Cloud, ShieldCheck, Sparkles,
+  GraduationCap, HeartHandshake, Quote,
 } from "lucide-react";
 
 const STEPS = [
@@ -97,6 +98,7 @@ export default function Home({ onStart }) {
           <nav className="hidden md:flex items-center gap-7 text-sm text-[#4A4F49] font-medium">
             <a href="#como-funciona" className="hover:text-[#1F6F5C] transition-colors">Como funciona</a>
             <a href="#recursos" className="hover:text-[#1F6F5C] transition-colors">Recursos</a>
+            <a href="#sobre" className="hover:text-[#1F6F5C] transition-colors">Sobre</a>
           </nav>
           <button
             onClick={onStart}
@@ -176,6 +178,75 @@ export default function Home({ onStart }) {
               <p className="text-sm text-[#6B7268] leading-relaxed">{f.desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Sobre */}
+      <section id="sobre" className="max-w-6xl mx-auto px-5 py-16 border-t border-[#E3E6E1]">
+        <div className="grid lg:grid-cols-[0.85fr_1.15fr] gap-12 items-center">
+          <div className="flex justify-center lg:justify-start">
+            <div className="relative w-full max-w-xs">
+              <div className="absolute -inset-3 rounded-[28px] bg-gradient-to-br from-[#1F6F5C] to-[#C9A227] opacity-15" />
+              <div className="relative bg-white border border-[#E3E6E1] rounded-3xl p-3 shadow-[0_20px_50px_-20px_rgba(18,24,31,0.25)]">
+                <img
+                  src="/foto-criador.jpg"
+                  alt="Foto do criador do Currículo Direto"
+                  className="w-full aspect-square object-cover rounded-2xl"
+                />
+                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-[#12181F] text-white text-xs font-semibold px-4 py-2 rounded-full whitespace-nowrap shadow-md">
+                  Moisés Assunção — Criador
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <span className="text-xs font-semibold tracking-wide text-[#1F6F5C] uppercase">Sobre o criador</span>
+            <h2 style={{ fontFamily: "Fraunces, serif" }} className="text-3xl sm:text-4xl font-bold text-[#12181F] mt-2 mb-5 leading-tight">
+              Feito por um estudante,<br className="hidden sm:block" /> não por uma empresa.
+            </h2>
+
+            <div className="relative bg-[#EEF5F2] border border-[#D7E7E1] rounded-xl p-5 mb-6">
+              <Quote size={20} className="text-[#1F6F5C] opacity-40 mb-1.5" />
+              <p style={{ fontFamily: "Fraunces, serif" }} className="text-[#12181F] font-medium leading-snug">
+                Criei o Currículo Direto pra unir duas coisas: colocar em prática o que venho aprendendo
+                na faculdade e ajudar quem trava exatamente onde eu já travei — no filtro automático antes
+                de chegar a um recrutador de verdade.
+              </p>
+            </div>
+
+            <div className="space-y-4 text-[#4A4F49] text-sm sm:text-base leading-relaxed mb-8">
+              <p>
+                Sou estudante de Análise e Desenvolvimento de Sistemas, e o Currículo Direto nasceu como um
+                projeto pra por em prática o que eu vinha estudando — do zero, com login, banco de dados e
+                tudo o que um site de verdade precisa.
+              </p>
+              <p>
+                Mas o motivo não foi só técnico. Currículo bom que nunca chega a ser lido por causa de
+                formatação errada é um problema real, e eu não queria construir só mais um gerador bonito —
+                queria um que realmente ajudasse.
+              </p>
+              <p>
+                Por isso o site é <strong className="text-[#12181F]">gratuito pra todo mundo</strong>, sem
+                pegadinha nem plano pago escondido. A ideia é que qualquer pessoa consiga sair daqui com um
+                currículo profissional — inclusive quem nunca fez um currículo antes e não sabe por onde começar.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-3 gap-4">
+              {[
+                { icon: GraduationCap, titulo: "Projeto de faculdade", desc: "Aprendizado colocado em prática, do início ao fim." },
+                { icon: ShieldCheck, titulo: "Pensado pro ATS", desc: "Resolver um problema que eu mesmo já enfrentei." },
+                { icon: HeartHandshake, titulo: "Sempre gratuito", desc: "Sem mensalidade, sem pegadinha, pra todo mundo." },
+              ].map((f) => (
+                <div key={f.titulo} className="border border-[#E3E6E1] rounded-lg p-4 bg-white">
+                  <f.icon size={18} className="text-[#1F6F5C] mb-2" />
+                  <div className="text-sm font-semibold text-[#12181F] mb-1">{f.titulo}</div>
+                  <p className="text-xs text-[#8A9187] leading-relaxed">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
