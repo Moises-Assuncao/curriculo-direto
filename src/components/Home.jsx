@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   FileText, ArrowRight, UploadCloud, Target, CheckCircle2,
   Palette, LayoutTemplate, Cloud, ShieldCheck, Sparkles,
-  GraduationCap, HeartHandshake, Quote,
+  GraduationCap, HeartHandshake, Quote, FileDown,
 } from "lucide-react";
 
 const STEPS = [
@@ -33,49 +33,97 @@ const FEATURES = [
   { icon: Sparkles, titulo: "100% seu", desc: "Personalize cores e a ordem das seções do jeito que fizer sentido pra sua vaga." },
 ];
 
-function ScoreCard() {
+function FillingStage() {
   return (
-    <div className="relative bg-white border border-[#E3E6E1] rounded-2xl shadow-[0_20px_50px_-20px_rgba(18,24,31,0.25)] p-6 w-full max-w-sm">
+    <div>
+      <div className="mb-3.5">
+        <div className="text-[10px] font-medium text-[#8A9187] mb-1">Nome completo</div>
+        <div className="h-2.5 bg-[#EEF5F2] rounded overflow-hidden">
+          <div className="h-full bg-[#1F6F5C]/70 rounded animate-grow" style={{ animationDelay: "0s" }} />
+        </div>
+      </div>
+      <div className="mb-3.5">
+        <div className="text-[10px] font-medium text-[#8A9187] mb-1">Cargo desejado</div>
+        <div className="h-2.5 bg-[#EEF5F2] rounded w-2/3 overflow-hidden">
+          <div className="h-full bg-[#1F6F5C]/70 rounded animate-grow" style={{ animationDelay: "0.15s" }} />
+        </div>
+      </div>
+      <div>
+        <div className="text-[10px] font-medium text-[#8A9187] mb-1">Experiência profissional</div>
+        <div className="h-2 bg-[#EEF5F2] rounded mb-1.5 overflow-hidden">
+          <div className="h-full bg-[#C9A227]/70 rounded animate-grow" style={{ animationDelay: "0.3s" }} />
+        </div>
+        <div className="h-2 bg-[#EEF5F2] rounded mb-1.5 overflow-hidden">
+          <div className="h-full bg-[#C9A227]/70 rounded animate-grow" style={{ animationDelay: "0.45s" }} />
+        </div>
+        <div className="h-2 bg-[#EEF5F2] rounded w-4/5 overflow-hidden">
+          <div className="h-full bg-[#C9A227]/70 rounded animate-grow" style={{ animationDelay: "0.6s" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewStage() {
+  return (
+    <div>
+      <div className="h-3.5 bg-[#12181F] rounded w-2/3 mb-1.5 animate-fade-in" style={{ animationDelay: "0s" }} />
+      <div className="h-2 bg-[#D7DBD3] rounded w-1/3 mb-3 animate-fade-in" style={{ animationDelay: "0.1s" }} />
+      <div className="h-px bg-[#1F6F5C] w-full mb-3 animate-fade-in" style={{ animationDelay: "0.2s" }} />
+      <div className="h-2 bg-[#EEF5F2] rounded mb-1.5 animate-fade-in" style={{ animationDelay: "0.3s" }} />
+      <div className="h-2 bg-[#EEF5F2] rounded mb-1.5 w-11/12 animate-fade-in" style={{ animationDelay: "0.4s" }} />
+      <div className="h-2 bg-[#EEF5F2] rounded mb-4 w-4/5 animate-fade-in" style={{ animationDelay: "0.5s" }} />
+      <div className="h-2 bg-[#1F6F5C]/40 rounded w-1/4 mb-2 animate-fade-in" style={{ animationDelay: "0.6s" }} />
+      <div className="h-2 bg-[#EEF5F2] rounded mb-1.5 animate-fade-in" style={{ animationDelay: "0.7s" }} />
+      <div className="h-2 bg-[#EEF5F2] rounded w-3/4 animate-fade-in" style={{ animationDelay: "0.8s" }} />
+    </div>
+  );
+}
+
+function ExportStage() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full pt-2">
+      <div className="w-16 h-16 rounded-xl bg-[#EEF5F2] flex items-center justify-center mb-4 animate-fade-in">
+        <FileDown size={28} className="text-[#1F6F5C]" />
+      </div>
+      <div className="h-2.5 bg-[#D7DBD3] rounded w-2/3 mb-2 animate-fade-in" style={{ animationDelay: "0.15s" }} />
+      <div className="h-2 bg-[#EEF5F2] rounded w-1/2 mb-5 animate-fade-in" style={{ animationDelay: "0.3s" }} />
+      <div className="flex items-center gap-2 text-[#1F6F5C] text-sm font-semibold animate-fade-in" style={{ animationDelay: "0.5s" }}>
+        <CheckCircle2 size={16} /> Currículo baixado
+      </div>
+    </div>
+  );
+}
+
+const DEMO_LABELS = ["01 · PREENCHENDO", "02 · PRÉ-VISUALIZANDO", "03 · EXPORTANDO"];
+
+function DemoCard() {
+  const [stage, setStage] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setStage((s) => (s + 1) % 3), 3200);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="relative bg-white border border-[#E3E6E1] rounded-2xl shadow-[0_20px_50px_-20px_rgba(18,24,31,0.25)] p-6 pb-10 w-full max-w-sm h-[420px] overflow-hidden">
       <div className="absolute -top-3 left-6 bg-[#1F6F5C] text-white text-[11px] font-semibold px-3 py-1 rounded-full tracking-wide">
-        PRÉ-VISUALIZAÇÃO
-      </div>
-      <div className="flex items-center justify-between mb-5 mt-1">
-        <div className="space-y-2 flex-1 mr-4">
-          <div className="h-2.5 bg-[#E3E6E1] rounded-full w-3/4" />
-          <div className="h-2 bg-[#EDEFEA] rounded-full w-1/2" />
-        </div>
-        <div className="relative w-16 h-16 shrink-0">
-          <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
-            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#EDEFEA" strokeWidth="3.5" />
-            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#1F6F5C" strokeWidth="3.5"
-              strokeDasharray="97.4" strokeDashoffset="9" strokeLinecap="round" />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-sm font-bold text-[#12181F]">92</span>
-          </div>
-        </div>
+        {DEMO_LABELS[stage]}
       </div>
 
-      <div className="text-[10px] font-semibold tracking-wide text-[#8A9187] mb-2">HABILIDADES DETECTADAS</div>
-      <div className="flex flex-wrap gap-1.5 mb-5">
-        {["React", "Excel", "Gestão", "SQL", "Comunicação"].map(s => (
-          <span key={s} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-[#EEF5F2] text-[#1F6F5C] border border-[#D7E7E1]">
-            {s}
-          </span>
+      <div key={stage} className="mt-3">
+        {stage === 0 && <FillingStage />}
+        {stage === 1 && <PreviewStage />}
+        {stage === 2 && <ExportStage />}
+      </div>
+
+      <div className="absolute bottom-5 left-0 right-0 flex items-center justify-center gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className={`h-1.5 rounded-full transition-all duration-300 ${i === stage ? "w-6 bg-[#1F6F5C]" : "w-1.5 bg-[#E3E6E1]"}`}
+          />
         ))}
-      </div>
-
-      <div className="space-y-1.5 mb-4">
-        <div className="h-2 bg-[#EDEFEA] rounded-full w-full" />
-        <div className="h-2 bg-[#EDEFEA] rounded-full w-[85%]" />
-        <div className="h-2 bg-[#EDEFEA] rounded-full w-[70%]" />
-      </div>
-
-      <div className="border-t border-[#E3E6E1] pt-3">
-        <div className="text-[10px] font-semibold tracking-wide text-[#8A9187] mb-1.5">COMPATIBILIDADE COM ATS</div>
-        <div className="h-2 rounded-full bg-[#EDEFEA] overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[#1F6F5C] to-[#C9A227] rounded-full" style={{ width: "88%" }} />
-        </div>
       </div>
     </div>
   );
@@ -136,7 +184,7 @@ export default function Home({ onStart }) {
         </div>
 
         <div className="flex justify-center lg:justify-end">
-          <ScoreCard />
+          <DemoCard />
         </div>
       </section>
 

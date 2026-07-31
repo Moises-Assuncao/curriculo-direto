@@ -38,7 +38,7 @@ const SECTION_LABELS = {
 };
 
 const initialData = {
-  contato: { nome: "", cargo: "", email: "", telefone: "", cidade: "", linkedin: "", portfolio: "", foto: "" },
+  contato: { nome: "", cargo: "", email: "", telefone: "", cidade: "", linkedin: "", portfolio: "", foto: "", cnhPossui: false, cnh: "" },
   resumo: "",
   experiencias: [emptyExperience()],
   formacoes: [emptyEducation()],
@@ -70,6 +70,61 @@ const TEMPLATES = [
   { id: "executivo", nome: "Executivo", desc: "Barra lateral escura, foto centralizada", layout: "sidebar", photo: "sidebar", defaultAccent: "#12181F", atsWarning: true },
   { id: "criativo", nome: "Criativo", desc: "Barra lateral colorida, visual moderno", layout: "sidebar", photo: "sidebar", defaultAccent: "#1F6F5C", atsWarning: true },
 ];
+
+const PLACEHOLDER_DATA = {
+  contato: {
+    nome: "Preencha seu nome aqui",
+    cargo: "Preencha o cargo desejado aqui",
+    email: "seuemail@exemplo.com",
+    telefone: "(00) 00000-0000",
+    cidade: "Sua cidade, UF",
+    linkedin: "linkedin.com/in/seu-perfil",
+    portfolio: "",
+    foto: "",
+    cnhPossui: false,
+    cnh: "",
+  },
+  resumo: "Preencha aqui um resumo curto sobre sua trajetória, seus pontos fortes e o que você busca profissionalmente.",
+  experiencias: [{
+    id: "placeholder-exp",
+    cargo: "Preencha seu cargo aqui",
+    empresa: "Preencha o nome da empresa aqui",
+    local: "Cidade, UF",
+    inicio: "Jan 2023",
+    fim: "",
+    atual: true,
+    descricao: "Preencha aqui suas atividades, uma por linha\nDê preferência pra resultados e números\nComo neste exemplo",
+  }],
+  formacoes: [{
+    id: "placeholder-edu",
+    curso: "Preencha seu curso aqui",
+    instituicao: "Preencha a instituição aqui",
+    local: "Cidade, UF",
+    inicio: "2021",
+    fim: "2024",
+  }],
+  cursos: [{ id: "placeholder-curso", nome: "Preencha um curso ou certificação aqui", instituicao: "Instituição", ano: "2024" }],
+  projetos: [],
+  voluntariado: [],
+  habilidades: "Preencha suas habilidades aqui, separadas por vírgula",
+  idiomas: [{ id: "placeholder-idioma", idioma: "Preencha um idioma aqui", nivel: "Intermediário" }],
+};
+
+function isResumeEmpty(data) {
+  const c = data.contato;
+  const contatoVazio = !c.nome && !c.cargo && !c.email && !c.telefone && !c.cidade && !c.linkedin && !c.portfolio && !c.cnhPossui;
+  return (
+    contatoVazio &&
+    !data.resumo &&
+    data.experiencias.every((e) => !e.cargo && !e.empresa && !e.descricao) &&
+    data.formacoes.every((f) => !f.curso && !f.instituicao) &&
+    data.cursos.length === 0 &&
+    data.projetos.length === 0 &&
+    data.voluntariado.length === 0 &&
+    !data.habilidades &&
+    data.idiomas.length === 0
+  );
+}
 
 function Section({ icon: Icon, title, children, open, onToggle }) {
   return (
@@ -266,6 +321,7 @@ function Resume({ data, templateId }) {
   const template = TEMPLATES.find(t => t.id === templateId) || TEMPLATES[1];
   const accent = data.accentColor || template.defaultAccent;
   const { contato } = data;
+  const cnhLabel = contato.cnhPossui && contato.cnh ? `CNH ${contato.cnh}` : "";
   const order = (data.sectionOrder && data.sectionOrder.length ? data.sectionOrder : DEFAULT_SECTION_ORDER)
     .filter(k => DEFAULT_SECTION_ORDER.includes(k));
 
@@ -295,7 +351,7 @@ function Resume({ data, templateId }) {
 
   const ContactLine = ({ color }) => (
     <div style={{ fontSize: "11.5px", color: color || "#4A4F49" }}>
-      {[contato.cidade, contato.telefone, contato.email, contato.linkedin, contato.portfolio].filter(Boolean).map((item, i, arr) => (
+      {[contato.cidade, contato.telefone, contato.email, contato.linkedin, contato.portfolio, cnhLabel].filter(Boolean).map((item, i, arr) => (
         <div key={i} style={{ marginBottom: i < arr.length - 1 ? "2px" : 0 }}>{item}</div>
       ))}
     </div>
@@ -353,7 +409,7 @@ function Resume({ data, templateId }) {
             <div style={{ fontSize: nameSize, fontWeight: 700, color: accent }}>{contato.nome || "Seu Nome"}</div>
             {contato.cargo && <div style={{ fontSize: "14px", color: "#4A4F49", marginTop: "2px" }}>{contato.cargo}</div>}
             <div style={{ fontSize: "11.5px", color: "#4A4F49", marginTop: "4px" }}>
-              {[contato.cidade, contato.telefone, contato.email, contato.linkedin, contato.portfolio].filter(Boolean).join("  |  ")}
+              {[contato.cidade, contato.telefone, contato.email, contato.linkedin, contato.portfolio, cnhLabel].filter(Boolean).join("  |  ")}
             </div>
           </div>
         </div>
@@ -362,7 +418,7 @@ function Resume({ data, templateId }) {
           <div style={{ fontSize: nameSize, fontWeight: 700, color: accent }}>{contato.nome || "Seu Nome"}</div>
           {contato.cargo && <div style={{ fontSize: "14px", color: "#4A4F49", marginTop: "2px" }}>{contato.cargo}</div>}
           <div style={{ fontSize: "11.5px", color: "#4A4F49", marginTop: "6px" }}>
-            {[contato.cidade, contato.telefone, contato.email, contato.linkedin, contato.portfolio].filter(Boolean).join("  |  ")}
+            {[contato.cidade, contato.telefone, contato.email, contato.linkedin, contato.portfolio, cnhLabel].filter(Boolean).join("  |  ")}
           </div>
         </div>
       )}
@@ -527,6 +583,11 @@ export default function ResumeBuilder({ user }) {
     setTemplate("moderno");
     try { await saveResume(user.uid, { data: initialData, template: "moderno" }); } catch (err) {}
   };
+
+  const showingPlaceholder = isResumeEmpty(data);
+  const previewData = showingPlaceholder
+    ? { ...PLACEHOLDER_DATA, accentColor: data.accentColor, sectionOrder: data.sectionOrder }
+    : data;
 
   const atsChecks = useMemo(() => {
     const tpl = TEMPLATES.find(t => t.id === template);
@@ -715,6 +776,30 @@ export default function ResumeBuilder({ user }) {
               <Field label="Cidade" value={data.contato.cidade} onChange={e => setContato("cidade", e.target.value)} />
               <Field label="LinkedIn" value={data.contato.linkedin} onChange={e => setContato("linkedin", e.target.value)} placeholder="linkedin.com/in/..." />
               <Field label="Portfólio / Site" value={data.contato.portfolio} onChange={e => setContato("portfolio", e.target.value)} placeholder="seusite.com" />
+              <label className="flex items-center gap-2 text-sm text-[#4A4F49] col-span-2 pt-1">
+                <input
+                  type="checkbox"
+                  checked={data.contato.cnhPossui}
+                  onChange={(e) => {
+                    setContato("cnhPossui", e.target.checked);
+                    if (!e.target.checked) setContato("cnh", "");
+                  }}
+                />
+                Eu possuo CNH (opcional)
+              </label>
+              {data.contato.cnhPossui && (
+                <label className="block text-sm">
+                  <span className="block mb-1 text-[#4A4F49] font-medium">Categoria da CNH</span>
+                  <select
+                    value={data.contato.cnh}
+                    onChange={(e) => setContato("cnh", e.target.value)}
+                    className="w-full rounded-md border border-[#D7DBD3] px-3 py-2 text-sm text-[#12181F] outline-none focus:border-[#1F6F5C]"
+                  >
+                    <option value="">Selecione</option>
+                    {["A", "B", "AB", "C", "D", "E"].map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+              )}
             </div>
           </Section>
 
@@ -866,8 +951,14 @@ export default function ResumeBuilder({ user }) {
             )}
           </div>
           <div className="lg:sticky lg:top-[90px]">
-            <div id="print-area" className="bg-white border border-[#E3E6E1] rounded-lg shadow-sm overflow-hidden">
-              <Resume data={data} templateId={template} />
+            {showingPlaceholder && (
+              <div id="no-print" className="flex items-center gap-2 bg-[#EEF5F2] text-[#1F6F5C] text-xs font-medium rounded-t-lg border border-b-0 border-[#D7E7E1] px-3 py-2">
+                <Sparkles size={13} />
+                Isto é um exemplo de como o modelo fica. Comece a preencher o formulário pra ver seu currículo de verdade.
+              </div>
+            )}
+            <div id="print-area" className={`bg-white border border-[#E3E6E1] shadow-sm overflow-hidden ${showingPlaceholder ? "rounded-b-lg" : "rounded-lg"}`}>
+              <Resume data={previewData} templateId={template} />
             </div>
           </div>
         </div>
