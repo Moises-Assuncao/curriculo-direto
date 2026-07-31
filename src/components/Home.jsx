@@ -106,18 +106,18 @@ function DemoCard() {
   }, []);
 
   return (
-    <div className="relative bg-white border border-[#E3E6E1] rounded-2xl shadow-[0_20px_50px_-20px_rgba(18,24,31,0.25)] p-6 pb-10 w-full max-w-sm h-[420px] overflow-hidden">
-      <div className="absolute -top-3 left-6 bg-[#1F6F5C] text-white text-[11px] font-semibold px-3 py-1 rounded-full tracking-wide">
+    <div className="relative bg-white border border-[#E3E6E1] rounded-2xl shadow-[0_20px_50px_-20px_rgba(18,24,31,0.25)] p-6 pt-7 pb-6 w-full max-w-sm">
+      <div className="absolute -top-3 left-6 bg-[#1F6F5C] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full tracking-wide whitespace-nowrap">
         {DEMO_LABELS[stage]}
       </div>
 
-      <div key={stage} className="mt-3">
+      <div key={stage} className="h-[300px] overflow-hidden">
         {stage === 0 && <FillingStage />}
         {stage === 1 && <PreviewStage />}
         {stage === 2 && <ExportStage />}
       </div>
 
-      <div className="absolute bottom-5 left-0 right-0 flex items-center justify-center gap-1.5">
+      <div className="flex items-center justify-center gap-1.5 pt-4">
         {[0, 1, 2].map((i) => (
           <span
             key={i}
