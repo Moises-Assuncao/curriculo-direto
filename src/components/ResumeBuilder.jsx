@@ -4,7 +4,7 @@ import {
   Briefcase, GraduationCap, Award, Languages as LanguagesIcon,
   ChevronDown, ChevronUp, Sparkles, FolderKanban, HeartHandshake,
   Cloud, CloudOff, Loader2, RotateCcw, LogOut, GripVertical,
-  ImagePlus, X, AlertTriangle, Palette
+  ImagePlus, X, AlertTriangle, Palette, AlignLeft, AlignJustify, AlignRight
 } from "lucide-react";
 import { loadResume, saveResume, signOutUser } from "../firebase";
 
@@ -17,7 +17,7 @@ const emptyExperience = () => ({
 const emptyEducation = () => ({
   id: uid(), curso: "", instituicao: "", local: "", inicio: "", fim: "",
 });
-const emptyCourse = () => ({ id: uid(), nome: "", instituicao: "", ano: "" });
+const emptyCourse = () => ({ id: uid(), nome: "", instituicao: "", ano: "", cargaHoraria: "" });
 const emptyLanguage = () => ({ id: uid(), idioma: "", nivel: "Intermediário" });
 const emptyProject = () => ({ id: uid(), nome: "", descricao: "", link: "" });
 const emptyVolunteer = () => ({ id: uid(), cargo: "", organizacao: "", inicio: "", fim: "", descricao: "" });
@@ -37,6 +37,11 @@ const SECTION_LABELS = {
   idiomas: "Idiomas",
 };
 
+const DEFAULT_TEXT_ALIGN = {
+  resumo: "left", experiencia: "left", formacao: "left", projetos: "left",
+  cursos: "left", voluntariado: "left", habilidades: "left", idiomas: "left",
+};
+
 const initialData = {
   contato: { nome: "", cargo: "", email: "", telefone: "", cidade: "", linkedin: "", portfolio: "", foto: "", cnhPossui: false, cnh: "" },
   resumo: "",
@@ -49,6 +54,7 @@ const initialData = {
   idiomas: [],
   sectionOrder: DEFAULT_SECTION_ORDER,
   accentColor: "",
+  textAlign: DEFAULT_TEXT_ALIGN,
 };
 
 const ACCENT_PRESETS = [
@@ -103,7 +109,7 @@ const PLACEHOLDER_DATA = {
     inicio: "2021",
     fim: "2024",
   }],
-  cursos: [{ id: "placeholder-curso", nome: "Preencha um curso ou certificação aqui", instituicao: "Instituição", ano: "2024" }],
+  cursos: [{ id: "placeholder-curso", nome: "Preencha um curso ou certificação aqui", instituicao: "Instituição", ano: "2024", cargaHoraria: "40h" }],
   projetos: [],
   voluntariado: [],
   habilidades: "Preencha suas habilidades aqui, separadas por vírgula",
@@ -168,6 +174,35 @@ function TextArea({ label, ...props }) {
   );
 }
 
+const ALIGN_OPTIONS = [
+  { key: "left", icon: AlignLeft, label: "Esquerda" },
+  { key: "justify", icon: AlignJustify, label: "Justificado" },
+  { key: "right", icon: AlignRight, label: "Direita" },
+];
+
+function AlignControls({ value, onChange }) {
+  return (
+    <div className="flex items-center gap-3 mb-1">
+      <span className="text-xs text-[#8A9187]">Alinhamento do texto:</span>
+      <div className="flex items-center gap-1 bg-[#F6F7F5] border border-[#E3E6E1] rounded-md p-1">
+        {ALIGN_OPTIONS.map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            title={opt.label}
+            onClick={() => onChange(opt.key)}
+            className={`p-1.5 rounded transition-colors ${
+              value === opt.key ? "bg-white shadow-sm text-[#1F6F5C]" : "text-[#8A9187] hover:text-[#4A4F49]"
+            }`}
+          >
+            <opt.icon size={14} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RemovableCard({ children, onRemove, label }) {
   return (
     <div className="relative border border-[#E3E6E1] rounded-md p-3 bg-[#FBFCFA] space-y-2">
@@ -216,20 +251,21 @@ function resizeImageToBase64(file, maxSize = 320, quality = 0.85) {
 function buildSectionRenderers(data, H) {
   const { experiencias, formacoes, cursos, projetos, voluntariado, habilidades, idiomas, resumo } = data;
   const skillsList = habilidades.split(",").map(s => s.trim()).filter(Boolean);
+  const align = (key) => (data.textAlign && data.textAlign[key]) || "left";
 
   return {
     resumo: () => resumo && (
       <div key="resumo">
         <H>Resumo Profissional</H>
-        <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{resumo}</p>
+        <p style={{ margin: 0, whiteSpace: "pre-wrap", textAlign: align("resumo") }}>{resumo}</p>
       </div>
     ),
     experiencia: () => experiencias.some(e => e.cargo || e.empresa) && (
-      <div key="experiencia">
+      <div key="experiencia" style={{ textAlign: align("experiencia") }}>
         <H>Experiência Profissional</H>
         {experiencias.filter(e => e.cargo || e.empresa).map(e => (
           <div key={e.id} style={{ marginBottom: "14px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, textAlign: "left" }}>
               <span>{e.cargo}{e.empresa ? ` — ${e.empresa}` : ""}</span>
               <span style={{ fontWeight: 400, fontSize: "11.5px", color: "#4A4F49", whiteSpace: "nowrap", marginLeft: "8px" }}>
                 {fmtRange(e.inicio, e.fim, e.atual)}
@@ -237,7 +273,7 @@ function buildSectionRenderers(data, H) {
             </div>
             {e.local && <div style={{ fontSize: "11.5px", color: "#6B7268" }}>{e.local}</div>}
             {e.descricao && (
-              <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
+              <ul style={{ margin: "4px 0 0", paddingLeft: align("experiencia") === "left" ? "18px" : 0, listStylePosition: align("experiencia") === "left" ? "outside" : "inside" }}>
                 {e.descricao.split("\n").filter(Boolean).map((line, i) => (
                   <li key={i} style={{ marginBottom: "2px" }}>{line.replace(/^[-•]\s*/, "")}</li>
                 ))}
@@ -248,7 +284,7 @@ function buildSectionRenderers(data, H) {
       </div>
     ),
     formacao: () => formacoes.some(f => f.curso || f.instituicao) && (
-      <div key="formacao">
+      <div key="formacao" style={{ textAlign: align("formacao") }}>
         <H>Formação Acadêmica</H>
         {formacoes.filter(f => f.curso || f.instituicao).map(f => (
           <div key={f.id} style={{ marginBottom: "8px", display: "flex", justifyContent: "space-between" }}>
@@ -264,7 +300,7 @@ function buildSectionRenderers(data, H) {
       </div>
     ),
     projetos: () => projetos.some(p => p.nome) && (
-      <div key="projetos">
+      <div key="projetos" style={{ textAlign: align("projetos") }}>
         <H>Projetos</H>
         {projetos.filter(p => p.nome).map(p => (
           <div key={p.id} style={{ marginBottom: "8px" }}>
@@ -275,22 +311,24 @@ function buildSectionRenderers(data, H) {
       </div>
     ),
     cursos: () => cursos.some(c => c.nome) && (
-      <div key="cursos">
+      <div key="cursos" style={{ textAlign: align("cursos") }}>
         <H>Cursos e Certificações</H>
         {cursos.filter(c => c.nome).map(c => (
           <div key={c.id} style={{ marginBottom: "4px", display: "flex", justifyContent: "space-between" }}>
             <span>{c.nome}{c.instituicao ? ` — ${c.instituicao}` : ""}</span>
-            {c.ano && <span style={{ fontSize: "11.5px", color: "#4A4F49" }}>{c.ano}</span>}
+            <span style={{ fontSize: "11.5px", color: "#4A4F49", whiteSpace: "nowrap", marginLeft: "8px" }}>
+              {[c.cargaHoraria, c.ano].filter(Boolean).join(" · ")}
+            </span>
           </div>
         ))}
       </div>
     ),
     voluntariado: () => voluntariado.some(v => v.cargo || v.organizacao) && (
-      <div key="voluntariado">
+      <div key="voluntariado" style={{ textAlign: align("voluntariado") }}>
         <H>Experiência Voluntária</H>
         {voluntariado.filter(v => v.cargo || v.organizacao).map(v => (
           <div key={v.id} style={{ marginBottom: "8px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, textAlign: "left" }}>
               <span>{v.cargo}{v.organizacao ? ` — ${v.organizacao}` : ""}</span>
               <span style={{ fontWeight: 400, fontSize: "11.5px", color: "#4A4F49", whiteSpace: "nowrap", marginLeft: "8px" }}>
                 {fmtRange(v.inicio, v.fim, false)}
@@ -302,13 +340,13 @@ function buildSectionRenderers(data, H) {
       </div>
     ),
     habilidades: () => skillsList.length > 0 && (
-      <div key="habilidades">
+      <div key="habilidades" style={{ textAlign: align("habilidades") }}>
         <H>Habilidades</H>
         <p style={{ margin: 0 }}>{skillsList.join("  •  ")}</p>
       </div>
     ),
     idiomas: () => idiomas.some(l => l.idioma) && (
-      <div key="idiomas">
+      <div key="idiomas" style={{ textAlign: align("idiomas") }}>
         <H>Idiomas</H>
         <p style={{ margin: 0 }}>{idiomas.filter(l => l.idioma).map(l => `${l.idioma} (${l.nivel})`).join("  •  ")}</p>
       </div>
@@ -379,7 +417,7 @@ function Resume({ data, templateId }) {
               <div style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 700, borderBottom: "1px solid rgba(255,255,255,0.35)", paddingBottom: "3px", marginBottom: "6px" }}>
                 {SECTION_LABELS[k]}
               </div>
-              <div style={{ fontSize: "12px", opacity: 0.95 }}>
+              <div style={{ fontSize: "12px", opacity: 0.95, textAlign: (data.textAlign && data.textAlign[k]) || "left" }}>
                 {k === "habilidades"
                   ? data.habilidades.split(",").map(s => s.trim()).filter(Boolean).map((s, i) => <div key={i} style={{ marginBottom: "3px" }}>{s}</div>)
                   : data.idiomas.filter(l => l.idioma).map((l, i) => <div key={i} style={{ marginBottom: "3px" }}>{l.idioma} — {l.nivel}</div>)
@@ -525,7 +563,12 @@ export default function ResumeBuilder({ user }) {
       try {
         const saved = await loadResume(user.uid);
         if (saved) {
-          if (saved.data) setData(d => ({ ...initialData, ...saved.data, sectionOrder: saved.data.sectionOrder?.length ? saved.data.sectionOrder : DEFAULT_SECTION_ORDER }));
+          if (saved.data) setData(d => ({
+            ...initialData,
+            ...saved.data,
+            sectionOrder: saved.data.sectionOrder?.length ? saved.data.sectionOrder : DEFAULT_SECTION_ORDER,
+            textAlign: { ...DEFAULT_TEXT_ALIGN, ...(saved.data.textAlign || {}) },
+          }));
           if (saved.template) setTemplate(saved.template);
         }
         setSaveState("saved");
@@ -560,6 +603,7 @@ export default function ResumeBuilder({ user }) {
     setData(d => ({ ...d, [key]: d[key].map(item => item.id === id ? { ...item, [field]: value } : item) }));
   const addItem = (key, factory) => setData(d => ({ ...d, [key]: [...d[key], factory()] }));
   const removeItem = (key, id) => setData(d => ({ ...d, [key]: d[key].filter(item => item.id !== id) }));
+  const setTextAlign = (key, value) => setData(d => ({ ...d, textAlign: { ...d.textAlign, [key]: value } }));
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -586,7 +630,7 @@ export default function ResumeBuilder({ user }) {
 
   const showingPlaceholder = isResumeEmpty(data);
   const previewData = showingPlaceholder
-    ? { ...PLACEHOLDER_DATA, accentColor: data.accentColor, sectionOrder: data.sectionOrder }
+    ? { ...PLACEHOLDER_DATA, accentColor: data.accentColor, sectionOrder: data.sectionOrder, textAlign: data.textAlign }
     : data;
 
   const atsChecks = useMemo(() => {
@@ -804,12 +848,14 @@ export default function ResumeBuilder({ user }) {
           </Section>
 
           <Section icon={FileText} title="Resumo profissional" open={openSection === "resumo"} onToggle={() => toggle("resumo")}>
+            <AlignControls value={data.textAlign.resumo} onChange={(v) => setTextAlign("resumo", v)} />
             <TextArea label="Resumo (2–4 linhas)" rows={4} value={data.resumo}
               onChange={e => setData(d => ({ ...d, resumo: e.target.value }))}
               placeholder="Profissional com X anos de experiência em..." />
           </Section>
 
           <Section icon={Briefcase} title="Experiência profissional" open={openSection === "exp"} onToggle={() => toggle("exp")}>
+            <AlignControls value={data.textAlign.experiencia} onChange={(v) => setTextAlign("experiencia", v)} />
             {data.experiencias.map((e, idx) => (
               <RemovableCard key={e.id} label={`Experiência ${idx + 1}`} onRemove={() => removeItem("experiencias", e.id)}>
                 <div className="grid grid-cols-2 gap-2">
@@ -836,6 +882,7 @@ export default function ResumeBuilder({ user }) {
           </Section>
 
           <Section icon={GraduationCap} title="Formação acadêmica" open={openSection === "edu"} onToggle={() => toggle("edu")}>
+            <AlignControls value={data.textAlign.formacao} onChange={(v) => setTextAlign("formacao", v)} />
             {data.formacoes.map((f, idx) => (
               <RemovableCard key={f.id} label={`Formação ${idx + 1}`} onRemove={() => removeItem("formacoes", f.id)}>
                 <div className="grid grid-cols-2 gap-2">
@@ -855,6 +902,7 @@ export default function ResumeBuilder({ user }) {
           </Section>
 
           <Section icon={FolderKanban} title="Projetos" open={openSection === "projetos"} onToggle={() => toggle("projetos")}>
+            <AlignControls value={data.textAlign.projetos} onChange={(v) => setTextAlign("projetos", v)} />
             {data.projetos.map((p, idx) => (
               <RemovableCard key={p.id} label={`Projeto ${idx + 1}`} onRemove={() => removeItem("projetos", p.id)}>
                 <div className="grid grid-cols-2 gap-2">
@@ -872,12 +920,14 @@ export default function ResumeBuilder({ user }) {
           </Section>
 
           <Section icon={Award} title="Cursos e certificações" open={openSection === "cursos"} onToggle={() => toggle("cursos")}>
+            <AlignControls value={data.textAlign.cursos} onChange={(v) => setTextAlign("cursos", v)} />
             {data.cursos.map((c, idx) => (
               <RemovableCard key={c.id} label={`Curso ${idx + 1}`} onRemove={() => removeItem("cursos", c.id)}>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Field label="Nome" value={c.nome} onChange={ev => updateList("cursos", c.id, "nome", ev.target.value)} />
                   <Field label="Instituição" value={c.instituicao} onChange={ev => updateList("cursos", c.id, "instituicao", ev.target.value)} />
                   <Field label="Ano" value={c.ano} onChange={ev => updateList("cursos", c.id, "ano", ev.target.value)} />
+                  <Field label="Carga horária" value={c.cargaHoraria} onChange={ev => updateList("cursos", c.id, "cargaHoraria", ev.target.value)} placeholder="Ex: 40h" />
                 </div>
               </RemovableCard>
             ))}
@@ -887,6 +937,7 @@ export default function ResumeBuilder({ user }) {
           </Section>
 
           <Section icon={HeartHandshake} title="Experiência voluntária" open={openSection === "vol"} onToggle={() => toggle("vol")}>
+            <AlignControls value={data.textAlign.voluntariado} onChange={(v) => setTextAlign("voluntariado", v)} />
             {data.voluntariado.map((v, idx) => (
               <RemovableCard key={v.id} label={`Voluntariado ${idx + 1}`} onRemove={() => removeItem("voluntariado", v.id)}>
                 <div className="grid grid-cols-2 gap-2">
@@ -904,12 +955,14 @@ export default function ResumeBuilder({ user }) {
           </Section>
 
           <Section icon={Sparkles} title="Habilidades" open={openSection === "skills"} onToggle={() => toggle("skills")}>
+            <AlignControls value={data.textAlign.habilidades} onChange={(v) => setTextAlign("habilidades", v)} />
             <TextArea label="Separe por vírgula" rows={2} value={data.habilidades}
               onChange={e => setData(d => ({ ...d, habilidades: e.target.value }))}
               placeholder="Excel, Gestão de projetos, Python, Comunicação" />
           </Section>
 
           <Section icon={LanguagesIcon} title="Idiomas" open={openSection === "idiomas"} onToggle={() => toggle("idiomas")}>
+            <AlignControls value={data.textAlign.idiomas} onChange={(v) => setTextAlign("idiomas", v)} />
             {data.idiomas.map((l, idx) => (
               <RemovableCard key={l.id} label={`Idioma ${idx + 1}`} onRemove={() => removeItem("idiomas", l.id)}>
                 <div className="grid grid-cols-2 gap-2">
