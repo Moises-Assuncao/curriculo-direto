@@ -1,11 +1,17 @@
 rules_version = '2';
 
-// Cada usuário só pode ler e escrever o próprio currículo.
-// O documento fica em: curriculos/{uid}
+// Cada usuário só pode ler e escrever os próprios currículos.
+// Cada currículo fica em: curriculos/{uid}/itens/{resumeId}
+// (curriculos/{uid} sozinho é o formato antigo, mantido só pra migração)
 service cloud.firestore {
   match /databases/{database}/documents {
     match /curriculos/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      match /itens/{resumeId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }
+
