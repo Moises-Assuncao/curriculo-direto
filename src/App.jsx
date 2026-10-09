@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, isFirebaseConfigured, signInWithGoogle } from "./firebase";
 import Home from "./components/Home";
+import Dashboard from "./components/Dashboard";
 import ResumeBuilder from "./components/ResumeBuilder";
 import { Loader2 } from "lucide-react";
 
@@ -10,16 +11,16 @@ const DEMO_USER = { uid: "demo-local", displayName: "Modo de teste", photoURL: n
 export default function App() {
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [activeResumeId, setActiveResumeId] = useState(null);
 
   useEffect(() => {
-    // Sem .env preenchido: não existe login de verdade, então a pessoa
-    // "entra" clicando na home mesmo, e os dados salvam local no navegador.
     if (!isFirebaseConfigured) {
       setCheckingAuth(false);
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
+      if (!firebaseUser) setActiveResumeId(null);
       setCheckingAuth(false);
     });
     return unsubscribe;
@@ -57,7 +58,11 @@ export default function App() {
           README). Os dados estão sendo salvos só neste navegador.
         </div>
       )}
-      <ResumeBuilder user={user} />
+      {activeResumeId ? (
+        <ResumeBuilder user={user} resumeId={activeResumeId} onBack={() => setActiveResumeId(null)} />
+      ) : (
+        <Dashboard user={user} onOpen={setActiveResumeId} />
+      )}
     </>
   );
 }
