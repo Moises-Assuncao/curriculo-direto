@@ -4,9 +4,10 @@ import {
   Briefcase, GraduationCap, Award, Languages as LanguagesIcon,
   ChevronDown, ChevronUp, Sparkles, FolderKanban, HeartHandshake,
   Cloud, CloudOff, Loader2, RotateCcw, LogOut, GripVertical,
-  ImagePlus, X, AlertTriangle, Palette, AlignLeft, AlignJustify, AlignRight
+  ImagePlus, X, AlertTriangle, Palette, AlignLeft, AlignJustify, AlignRight,
+  ArrowLeft
 } from "lucide-react";
-import { loadResume, saveResume, signOutUser } from "../firebase";
+import { loadResumeItem, saveResumeItem, signOutUser } from "../firebase";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -547,9 +548,10 @@ function SectionOrderList({ order, onChange }) {
   );
 }
 
-export default function ResumeBuilder({ user }) {
+export default function ResumeBuilder({ user, resumeId, onBack }) {
   const [data, setData] = useState(initialData);
   const [template, setTemplate] = useState("moderno");
+  const [resumeName, setResumeName] = useState("");
   const [openSection, setOpenSection] = useState("contato");
   const [mobileView, setMobileView] = useState("form");
   const [saveState, setSaveState] = useState("loading");
@@ -559,9 +561,11 @@ export default function ResumeBuilder({ user }) {
   const saveTimer = useRef(null);
 
   useEffect(() => {
+    skipNextSave.current = true;
+    setSaveState("loading");
     (async () => {
       try {
-        const saved = await loadResume(user.uid);
+        const saved = await loadResumeItem(user.uid, resumeId);
         if (saved) {
           if (saved.data) setData(d => ({
             ...initialData,
@@ -570,6 +574,7 @@ export default function ResumeBuilder({ user }) {
             textAlign: { ...DEFAULT_TEXT_ALIGN, ...(saved.data.textAlign || {}) },
           }));
           if (saved.template) setTemplate(saved.template);
+          setResumeName(saved.nome || "Currículo sem nome");
         }
         setSaveState("saved");
       } catch (err) {
@@ -579,7 +584,7 @@ export default function ResumeBuilder({ user }) {
         setTimeout(() => { skipNextSave.current = false; }, 300);
       }
     })();
-  }, [user.uid]);
+  }, [user.uid, resumeId]);
 
   useEffect(() => {
     if (skipNextSave.current) return;
@@ -587,7 +592,7 @@ export default function ResumeBuilder({ user }) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       try {
-        await saveResume(user.uid, { data, template });
+        await saveResumeItem(user.uid, resumeId, { data, template, nome: resumeName });
         setSaveState("saved");
       } catch (err) {
         console.error(err);
@@ -595,7 +600,7 @@ export default function ResumeBuilder({ user }) {
       }
     }, 700);
     return () => clearTimeout(saveTimer.current);
-  }, [data, template, user.uid]);
+  }, [data, template, resumeName, user.uid, resumeId]);
 
   const toggle = (name) => setOpenSection(openSection === name ? "" : name);
   const setContato = (field, value) => setData(d => ({ ...d, contato: { ...d.contato, [field]: value } }));
@@ -622,10 +627,10 @@ export default function ResumeBuilder({ user }) {
   };
 
   const resetAll = async () => {
-    if (!window.confirm("Isso vai apagar todos os dados salvos deste currículo. Continuar?")) return;
+    if (!window.confirm("Isso vai apagar todos os dados preenchidos deste currículo (o nome continua). Continuar?")) return;
     setData(initialData);
     setTemplate("moderno");
-    try { await saveResume(user.uid, { data: initialData, template: "moderno" }); } catch (err) {}
+    try { await saveResumeItem(user.uid, resumeId, { data: initialData, template: "moderno", nome: resumeName }); } catch (err) {}
   };
 
   const showingPlaceholder = isResumeEmpty(data);
@@ -680,15 +685,26 @@ export default function ResumeBuilder({ user }) {
     <div className="min-h-screen bg-[#F6F7F5]">
       <header id="no-print" className="border-b border-[#E3E6E1] bg-white sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-5 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md bg-[#1F6F5C] flex items-center justify-center">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              onClick={onBack}
+              className="shrink-0 flex items-center gap-1 text-[#6B7268] hover:text-[#1F6F5C] text-sm font-medium pr-2 border-r border-[#E3E6E1] mr-1"
+              title="Voltar pros meus currículos"
+            >
+              <ArrowLeft size={16} /> <span className="hidden sm:inline">Meus currículos</span>
+            </button>
+            <div className="w-8 h-8 rounded-md bg-[#1F6F5C] flex items-center justify-center shrink-0">
               <FileText size={17} className="text-white" />
             </div>
-            <div>
-              <div style={{ fontFamily: "Fraunces, serif" }} className="text-lg font-bold text-[#12181F] leading-tight">
-                Currículo Direto
-              </div>
-              <div className="text-[11px] text-[#8A9187] leading-tight">sem enrolação, passa no ATS</div>
+            <div className="min-w-0">
+              <input
+                value={resumeName}
+                onChange={(e) => setResumeName(e.target.value)}
+                placeholder="Nome deste currículo"
+                className="text-base font-bold text-[#12181F] bg-transparent outline-none border-b border-transparent focus:border-[#1F6F5C] w-full truncate"
+                style={{ fontFamily: "Fraunces, serif" }}
+              />
+              <div className="text-[11px] text-[#8A9187] leading-tight">Currículo Direto · sem enrolação, passa no ATS</div>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -696,7 +712,7 @@ export default function ResumeBuilder({ user }) {
             {user.photoURL && (
               <img src={user.photoURL} alt={user.displayName || "Usuário"} className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />
             )}
-            <button onClick={resetAll} className="text-[#6B7268] hover:text-[#B4483B] p-2 rounded-md transition-colors" title="Limpar tudo">
+            <button onClick={resetAll} className="text-[#6B7268] hover:text-[#B4483B] p-2 rounded-md transition-colors" title="Limpar dados preenchidos">
               <RotateCcw size={15} />
             </button>
             <button onClick={signOutUser} className="text-[#6B7268] hover:text-[#B4483B] p-2 rounded-md transition-colors" title="Sair">
